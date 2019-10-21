@@ -10,6 +10,28 @@ import (
 	"github.com/miekg/dns"
 )
 
+type dnsHandler struct {
+	kvs    *store.Store
+	logger *log.Logger
+}
+
+// ServeDNS finds record in the KV Store
+func (d *dnsHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+	var msg dns.Msg
+
+	msg.SetReply(r)
+	d.logger.Printf("incoming DNS request from %s", w.RemoteAddr().String())
+	key := fmt.Sprintf("%s_%d", r.Question[0].Name, r.Question[0].Qtype)
+	msg.Authoritative = true
+	v, ok := d.kvs.Get(key)
+	if ok {
+		if rr, err := dns.NewRR(v); err == nil {
+			msg.Answer = append(msg.Answer, rr)
+		}
+	}
+	w.WriteMsg(&msg)
+}
+
 // DNS wrapper
 type DNS struct {
 	srv    dns.Server
@@ -88,26 +110,4 @@ func (d *DNS) parseZone(zoneFile string) {
 		d.logger.Printf("error reading zone file: %v", err)
 	}
 	d.logger.Println("records loaded into KV Store")
-}
-
-type dnsHandler struct {
-	kvs    *store.Store
-	logger *log.Logger
-}
-
-// ServeDNS finds record in the KV Store
-func (d *dnsHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
-	var msg dns.Msg
-
-	msg.SetReply(r)
-	d.logger.Printf("incoming DNS request from %s", w.RemoteAddr().String())
-	key := fmt.Sprintf("%s_%d", r.Question[0].Name, r.Question[0].Qtype)
-	msg.Authoritative = true
-	v, ok := d.kvs.Get(key)
-	if ok {
-		if rr, err := dns.NewRR(v); err == nil {
-			msg.Answer = append(msg.Answer, rr)
-		}
-	}
-	w.WriteMsg(&msg)
 }

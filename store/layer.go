@@ -9,9 +9,10 @@ import (
 	"github.com/hashicorp/raft"
 )
 
-// RaftLayer implements the raft.StreamLayer interface,
-// so that we can use a single RPC layer for Raft and TCP
-type RaftLayer struct {
+// raftLayer taken from:
+// https://github.com/hashicorp/consul/blob/master/agent/consul/raft_rpc.go
+// we can not import this file alone, so we have to copy it.
+type raftLayer struct {
 	// addr is the listener address to return.
 	addr net.Addr
 
@@ -25,8 +26,8 @@ type RaftLayer struct {
 }
 
 // Handoff is used to hand off a connection to the
-// RaftLayer. This allows it to be Accept()'ed
-func (l *RaftLayer) Handoff(c net.Conn) error {
+// raftLayer. This allows it to be Accept()'ed
+func (l *raftLayer) Handoff(c net.Conn) error {
 	select {
 	case l.connCh <- c:
 		return nil
@@ -37,7 +38,7 @@ func (l *RaftLayer) Handoff(c net.Conn) error {
 
 // Accept is used to return connection which are
 // dialed to be used with the Raft layer
-func (l *RaftLayer) Accept() (net.Conn, error) {
+func (l *raftLayer) Accept() (net.Conn, error) {
 	select {
 	case conn := <-l.connCh:
 		return conn, nil
@@ -47,7 +48,7 @@ func (l *RaftLayer) Accept() (net.Conn, error) {
 }
 
 // Close is used to stop listening for Raft connections
-func (l *RaftLayer) Close() error {
+func (l *raftLayer) Close() error {
 	l.closeLock.Lock()
 	defer l.closeLock.Unlock()
 
@@ -59,12 +60,12 @@ func (l *RaftLayer) Close() error {
 }
 
 // Addr is used to return the address of the listener
-func (l *RaftLayer) Addr() net.Addr {
+func (l *raftLayer) Addr() net.Addr {
 	return l.addr
 }
 
 // Dial is used to create a new outgoing connection
-func (l *RaftLayer) Dial(address raft.ServerAddress, timeout time.Duration) (net.Conn, error) {
+func (l *raftLayer) Dial(address raft.ServerAddress, timeout time.Duration) (net.Conn, error) {
 	d := &net.Dialer{
 		Timeout: timeout,
 	}

@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/raft"
@@ -19,25 +18,16 @@ type Store struct {
 	RaftAddr string
 	RaftID   string
 
-	// KV Store
-	mu sync.Mutex
-	m  map[string]string // The key-value store for the system.
-
 	// TCP listener
 	ln net.Listener
 
 	// raft
+	fsm       *fsm       // The finite-state machine
 	raft      *raft.Raft // The consensus mechanism
-	raftLayer *RaftLayer
+	raftLayer *raftLayer // The TCP wrapper for Raft
 
 	// logger
 	logger *log.Logger
-}
-
-type command struct {
-	Op    string `json:"op,omitempty"`
-	Key   string `json:"key,omitempty"`
-	Value string `json:"value,omitempty"`
 }
 
 // InitStore returns an initialized KV store
@@ -47,7 +37,9 @@ func InitStore(addr, join, id string) *Store {
 
 	store.RaftAddr = addr
 	store.RaftID = id
-	store.m = make(map[string]string)
+
+	// Create the FSM.
+	store.fsm = newFSM()
 	store.logger = log.New(os.Stderr, "", log.LstdFlags)
 
 	// Initialize TCP
@@ -74,8 +66,8 @@ func (s *Store) initRaft(join string) error {
 	config := raft.DefaultConfig()
 	config.LocalID = raft.ServerID(s.RaftID)
 
-	// set Raft and normal TCP connections on same port
-	s.raftLayer = &RaftLayer{
+	// set Raft and KV connections on same TCP port
+	s.raftLayer = &raftLayer{
 		addr:   s.ln.Addr().(*net.TCPAddr),
 		connCh: make(chan net.Conn),
 	}
@@ -87,7 +79,7 @@ func (s *Store) initRaft(join string) error {
 	stable := raft.NewInmemStore()
 
 	// Instantiate the Raft systems
-	r, err := raft.NewRaft(config, (*fsm)(s), log, stable, snap, trans)
+	r, err := raft.NewRaft(config, s.fsm, log, stable, snap, trans)
 	if err != nil {
 		return err
 	}
@@ -126,7 +118,7 @@ func (s *Store) start(ln net.Listener) {
 	}
 }
 
-// handleConn selects correct handler for Raft or TCP message
+// handleConn selects correct handler for Raft or KV message
 func (s *Store) handleConn(conn net.Conn) {
 	// Read the header messaqge
 	hdr := make([]byte, 3)
@@ -168,10 +160,7 @@ func (s *Store) LeaderCh() <-chan bool {
 
 // Get key from KV Store
 func (s *Store) Get(key string) (string, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	v, ok := s.m[key]
-	return v, ok
+	return s.fsm.get(key)
 }
 
 // Set adds key to KV Store

@@ -27,42 +27,13 @@ Compile source code:
 $ go build -o bin/dns-raft cmd/main.go
 ```
 
-## Dev
-
-Start first node:
-```
-$ bin/dns-raft -id id1 -raft.addr ":8300"
-$ bin/dns-raft -id id2 -raft.addr ":8301" -raft.join ":8300"
-$ bin/dns-raft -id id3 -raft.addr ":8302" -raft.join ":8300"
-```
-
 ## Run
 
-Start first node:
+Start three nodes:
 ```
-$ bin/dns-raft -id id1 \
-               -tcp.addr ":8500" \
-               -dns.addr ":8600" \
-               -raft.addr ":8300" \
-               -zone.file "./zones/zone.txt"
-```
-
-Start second node:
-```
-$ bin/dns-raft -id id2 \
-               -tcp.addr ":8501" \
-               -dns.addr ":8601" \
-               -raft.addr ":8301" \
-               -raft.join "127.0.0.1:8500"
-```
-
-Start third node:
-```
-$ bin/dns-raft -id id3 \
-               -tcp.addr ":8502" \
-               -dns.addr ":8602" \
-               -raft.addr ":8302" \
-               -raft.join "127.0.0.1:8500"
+$ bin/dns-raft -id id0 -raft.addr ":8300" -dns.addr ":8600" -zone.file "./zones/zone.txt"
+$ bin/dns-raft -id id1 -raft.addr ":8301" -dns.addr ":8601" -raft.join ":8300"
+$ bin/dns-raft -id id2 -raft.addr ":8302" -dns.addr ":8602" -raft.join ":8300"
 ```
 
 ## DNS
@@ -103,34 +74,35 @@ $ dig @127.0.0.1 -p 8602 database.example.com
 
 Ping the first node:
 ```
-$ echo "ping" | nc localhost 8300
+$ echo "kv ping" | nc localhost 8300
 PONG
 ```
 
 Add a key:
 ```
-$ echo "set toto titi" | nc localhost 8300
+$ echo "kv set toto titi" | nc localhost 8300
 SUCCESS
 ```
 
 Get a key from any node:
 ```
-$ echo "get toto" | nc localhost 8300
+$ echo "kv get toto" | nc localhost 8300
 titi
-$ echo "get toto" | nc localhost 8301
+$ echo "kv get toto" | nc localhost 8301
 titi
-$ echo "get toto" | nc localhost 8302
+$ echo "kv get toto" | nc localhost 8302
 titi
 ```
 
 Remove the key:
 ```
-$ echo "del toto" | nc localhost 8500
+$ echo "kv del toto" | nc localhost 8500
 ```
 
 ## Inspirations
 
 * http://www.scs.stanford.edu/17au-cs244b/labs/projects/orbay_fisher.pdf
+* https://github.com/hashicorp/consul
 * https://github.com/otoolep/hraftd
 * https://github.com/yongman/leto
 
@@ -138,4 +110,3 @@ $ echo "del toto" | nc localhost 8500
 
 * forward to leader set command
 * load zone file on every node
-* separate tcp/store/fsm

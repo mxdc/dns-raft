@@ -40,7 +40,7 @@ func main() {
 	kvs := store.InitStore(raftaddr, raftjoin, raftid)
 	dns := dns.NewDNS(kvs, dnsaddr)
 	dns.Start()
-	dns.InitZone(zonefile)
+	dns.LoadZone(zonefile)
 	go handleSignals(dns, sigCh, quitCh)
 	code := <-quitCh
 	os.Exit(code)

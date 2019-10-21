@@ -41,22 +41,26 @@ func (d *DNS) Start() {
 	}()
 }
 
-// InitZone load zone file into KV Store when node is elected Leader
-func (d *DNS) InitZone(zoneFile string) {
-	if len(zoneFile) > 0 {
-		select {
-		case <-d.kvs.LeaderCh():
-			d.parseZone(zoneFile)
-		case <-time.After(5 * time.Second):
-			d.logger.Println("zonefile: error, not leader")
-		}
-	}
-}
-
-// LoadZone reload zone file into KV Store if node is Raft Leader
+// LoadZone load zone file into KV Store when node is elected Leader
 func (d *DNS) LoadZone(zoneFile string) {
-	if len(zoneFile) > 0 && d.kvs.IsLeader() {
-		d.parseZone(zoneFile)
+	if len(zoneFile) > 0 {
+		timeout := time.After(10 * time.Second)
+		for {
+			if len(d.kvs.Leader()) > 0 {
+				d.parseZone(zoneFile)
+				return
+			}
+
+			// poll until leader is known
+			select {
+			case <-d.kvs.LeaderCh():
+				d.parseZone(zoneFile)
+				return
+			case <-time.After(1 * time.Second):
+			case <-timeout:
+				d.logger.Println("zonefile: error, not leader")
+			}
+		}
 	}
 }
 

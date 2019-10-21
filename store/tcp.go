@@ -14,12 +14,12 @@ func (s *Store) handleTCP(conn net.Conn) {
 		return
 	}
 	tmp := strings.TrimSpace(string(input))
-	s.logger.Printf("new tcp msg: %s\n", tmp)
 
 	// trim spaces
-	cmd := strings.Fields(tmp)
+	cmd := strings.SplitN(tmp, " ", 3)
 	// handle command
 	rsp := s.handleCmd(cmd)
+	s.logger.Printf("tcp cmd %s: %s\n", cmd[0], rsp)
 	// send a response back
 	conn.Write([]byte(rsp))
 }
@@ -27,12 +27,11 @@ func (s *Store) handleTCP(conn net.Conn) {
 // Select the handler.
 func (s *Store) handleCmd(cmd []string) string {
 	if len(cmd) == 0 {
-		return "ERROR"
+		return errorMsg
 	}
 	verb := strings.ToLower(cmd[0])
 	args := cmd[1:]
 
-	s.logger.Printf("processing %s command", cmd)
 	switch verb {
 	case "ping":
 		return "PONG"
@@ -47,13 +46,13 @@ func (s *Store) handleCmd(cmd []string) string {
 	case "del":
 		return s.handleDel(args)
 	default:
-		return "ERROR"
+		return errorMsg
 	}
 }
 
 func (s *Store) handleJoin(args []string) string {
 	if len(args) != 2 {
-		return "ERROR"
+		return errorMsg
 	}
 
 	raftAddr := args[0]
@@ -61,37 +60,37 @@ func (s *Store) handleJoin(args []string) string {
 	if err := s.Join(nodeID, raftAddr); err != nil {
 		return err.Error()
 	}
-	return "SUCCESS"
+	return successMsg
 }
 
 func (s *Store) handleLeave(args []string) string {
 	if len(args) != 1 {
-		return "ERROR"
+		return errorMsg
 	}
 
 	nodeID := args[0]
 	if err := s.Leave(nodeID); err != nil {
 		return err.Error()
 	}
-	return "SUCCESS"
+	return successMsg
 }
 
 func (s *Store) handleGet(args []string) string {
 	if len(args) != 1 {
-		return "ERROR"
+		return errorMsg
 	}
 
 	k := args[0]
 	v, ok := s.Get(k)
 	if !ok {
-		return "ERROR"
+		return errorMsg
 	}
 	return v
 }
 
 func (s *Store) handleSet(args []string) string {
 	if len(args) != 2 {
-		return "ERROR"
+		return errorMsg
 	}
 
 	k := args[0]
@@ -99,17 +98,17 @@ func (s *Store) handleSet(args []string) string {
 	if err := s.Set(k, v); err != nil {
 		return err.Error()
 	}
-	return "SUCCESS"
+	return successMsg
 }
 
 func (s *Store) handleDel(args []string) string {
 	if len(args) != 1 {
-		return "ERROR"
+		return errorMsg
 	}
 
 	k := args[0]
 	if err := s.Delete(k); err != nil {
 		return err.Error()
 	}
-	return "SUCCESS"
+	return successMsg
 }

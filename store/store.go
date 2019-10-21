@@ -8,9 +8,16 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/raft"
+)
+
+const (
+	successMsg  = "SUCCESS"
+	errorMsg    = "ERROR"
+	rspBuffSize = 1024
 )
 
 // Store is a simple key-value store, where all changes are made via Raft consensus.
@@ -37,14 +44,15 @@ func InitStore(addr, join, id string) *Store {
 
 	store.RaftAddr = addr
 	store.RaftID = id
+	store.logger = log.New(os.Stderr, "", log.LstdFlags)
 
 	// Create the FSM.
 	store.fsm = newFSM()
-	store.logger = log.New(os.Stderr, "", log.LstdFlags)
 
 	// Initialize TCP
 	store.ln, err = net.Listen("tcp", store.RaftAddr)
 	if err != nil {
+		store.logger.Println(err.Error())
 		panic(err.Error())
 	}
 
@@ -137,7 +145,7 @@ func (s *Store) handleConn(conn net.Conn) {
 	case bytes.Equal(hdr, []byte("rft")):
 		s.raftLayer.Handoff(conn)
 	default:
-		s.logger.Printf("unknown header message: %v", hdr)
+		s.logger.Printf("unknown command prefix: %s", string(hdr))
 		conn.Write([]byte("ERROR"))
 		conn.Close()
 	}
@@ -166,7 +174,7 @@ func (s *Store) Get(key string) (string, bool) {
 // Set adds key to KV Store
 func (s *Store) Set(key, value string) error {
 	if s.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
+		return s.forwardSet(key, value)
 	}
 
 	c := &command{
@@ -186,7 +194,7 @@ func (s *Store) Set(key, value string) error {
 // Delete removes key from KV Store
 func (s *Store) Delete(key string) error {
 	if s.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
+		return s.forwardDel(key)
 	}
 
 	c := &command{
@@ -277,9 +285,9 @@ func tcpRequest(srvAddr string, message []byte) string {
 		return "could not write message to TCP server: " + err.Error()
 	}
 
-	out := make([]byte, 1024)
-	if _, err := conn.Read(out); err != nil {
+	buf := make([]byte, rspBuffSize)
+	if _, err := conn.Read(buf); err != nil {
 		return "could not read response from TCP server: " + err.Error()
 	}
-	return string(out)
+	return strings.TrimRight(string(buf), "\x00")
 }

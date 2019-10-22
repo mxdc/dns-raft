@@ -15,10 +15,13 @@ import (
 )
 
 const (
-	joinMsg     = "kv join %s %s\n"
-	leaveMsg    = "kv leave %s\n"
-	setMsg      = "kv set %s %s\n"
-	delMsg      = "kv del %s\n"
+	// tcp messages
+	joinMsg  = "kv join %s %s\n"
+	leaveMsg = "kv leave %s\n"
+	setMsg   = "kv set %s %s\n"
+	delMsg   = "kv del %s\n"
+
+	// tcp response buffer size
 	rspBuffSize = 1024
 )
 

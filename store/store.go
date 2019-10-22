@@ -15,8 +15,10 @@ import (
 )
 
 const (
-	successMsg  = "SUCCESS"
-	errorMsg    = "ERROR"
+	joinMsg     = "kv join %s %s\n"
+	leaveMsg    = "kv leave %s\n"
+	setMsg      = "kv set %s %s\n"
+	delMsg      = "kv del %s\n"
 	rspBuffSize = 1024
 )
 
@@ -104,9 +106,8 @@ func (s *Store) initRaft(join string) error {
 		}
 		s.raft.BootstrapCluster(configuration)
 	} else {
-		// format join command with header message "kv "
-		msg := []byte(fmt.Sprintf("kv join %s %s\n", s.RaftAddr, s.RaftID))
 		// send join request to existing node
+		msg := []byte(fmt.Sprintf(joinMsg, s.RaftAddr, s.RaftID))
 		rsp := tcpRequest(join, msg)
 		s.logger.Printf("joining node at %s: %s", join, rsp)
 	}
@@ -177,7 +178,7 @@ func (s *Store) Get(key string) (string, bool) {
 // Set adds key to KV Store
 func (s *Store) Set(key, value string) error {
 	if s.raft.State() != raft.Leader {
-		return s.forwardSet(key, value)
+		return s.forward(fmt.Sprintf(setMsg, key, value))
 	}
 
 	c := &command{
@@ -197,7 +198,7 @@ func (s *Store) Set(key, value string) error {
 // Delete removes key from KV Store
 func (s *Store) Delete(key string) error {
 	if s.raft.State() != raft.Leader {
-		return s.forwardDel(key)
+		return s.forward(fmt.Sprintf(delMsg, key))
 	}
 
 	c := &command{
@@ -211,6 +212,14 @@ func (s *Store) Delete(key string) error {
 	f := s.raft.Apply(msg, 10*time.Second)
 
 	return f.Error()
+}
+
+// Stop leaves the raft cluster
+func (s *Store) Stop() error {
+	if s.raft.State() != raft.Leader {
+		return s.forward(fmt.Sprintf(leaveMsg, s.RaftID))
+	}
+	return s.Leave(s.RaftID)
 }
 
 // Join joins a node, identified by nodeID and located at addr, to this store.

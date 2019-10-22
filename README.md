@@ -40,8 +40,9 @@ $ go build -o bin/dns-raft cmd/main.go
 Start three nodes:
 ```
 $ bin/dns-raft -id id0 -raft.addr ":8300" -dns.addr ":8600" -zone.file "./zones/z00.txt"
-$ bin/dns-raft -id id1 -raft.addr ":8301" -dns.addr ":8601" -zone.file "./zones/z01.txt" -raft.join ":8300"
-$ bin/dns-raft -id id2 -raft.addr ":8302" -dns.addr ":8602" -zone.file "./zones/z02.txt" -raft.join ":8300"
+$ bin/dns-raft -id id1 -raft.addr ":8301" -dns.addr ":8601" -zone.file "./zones/z01.txt"
+$ bin/dns-raft -id id2 -raft.addr ":8302" -dns.addr ":8602" -zone.file "./zones/z02.txt" -raft.join ":8301"
+$ bin/dns-raft -id id2 -raft.addr ":8303" -dns.addr ":8603" -zone.file "./zones/z02.txt" -raft.join ":8301"
 ```
 
 ## DNS

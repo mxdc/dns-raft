@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+const (
+	successMsg = "SUCCESS"
+	errorMsg   = "ERROR"
+)
+
 func (s *Store) handleTCP(conn net.Conn) {
 	defer conn.Close()
 	input, err := bufio.NewReader(conn).ReadString('\n')

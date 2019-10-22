@@ -33,6 +33,7 @@ func main() {
 	quitCh := make(chan int)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh,
+		os.Interrupt,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
@@ -54,6 +55,7 @@ func main() {
 				fmt.Println("DONE")
 				quitCh <- 0
 			default:
+				fmt.Println("shutdown")
 				quitCh <- 0
 			}
 		}

@@ -277,7 +277,7 @@ func (s *Store) Leave(nodeID string) error {
 				return err
 			}
 
-			s.logger.Printf("node %s leaved successfully", nodeID)
+			s.logger.Printf("node %s left successfully", nodeID)
 			return nil
 		}
 	}

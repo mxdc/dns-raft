@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -43,6 +42,7 @@ func main() {
 	dns := dns.NewDNS(kvs, dnsaddr)
 	dns.Start()
 	dns.LoadZone(zonefile)
+
 	go func() {
 		for {
 			s := <-sigCh
@@ -50,12 +50,9 @@ func main() {
 			case syscall.SIGHUP:
 				dns.LoadZone(zonefile)
 			case syscall.SIGINT:
-				fmt.Println("leaving")
-				kvs.Stop()
-				fmt.Println("DONE")
+				kvs.Leave(kvs.RaftID)
 				quitCh <- 0
 			default:
-				fmt.Println("shutdown")
 				quitCh <- 0
 			}
 		}

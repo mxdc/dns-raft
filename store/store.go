@@ -214,17 +214,13 @@ func (s *Store) Delete(key string) error {
 	return f.Error()
 }
 
-// Stop leaves the raft cluster
-func (s *Store) Stop() error {
-	if s.raft.State() != raft.Leader {
-		return s.forward(fmt.Sprintf(leaveMsg, s.RaftID))
-	}
-	return s.Leave(s.RaftID)
-}
-
 // Join joins a node, identified by nodeID and located at addr, to this store.
 // The node must be ready to respond to Raft communications at that address.
 func (s *Store) Join(nodeID, addr string) error {
+	if s.raft.State() != raft.Leader {
+		return s.forward(fmt.Sprintf(joinMsg, addr, nodeID))
+	}
+
 	s.logger.Printf("received join request for remote node %s at %s", nodeID, addr)
 
 	cf := s.raft.GetConfiguration()
@@ -261,6 +257,10 @@ func (s *Store) Join(nodeID, addr string) error {
 
 // Leave removes the node from the cluster
 func (s *Store) Leave(nodeID string) error {
+	if s.raft.State() != raft.Leader {
+		return s.forward(fmt.Sprintf(leaveMsg, s.RaftID))
+	}
+
 	s.logger.Printf("received leave request for remote node %s", nodeID)
 
 	cf := s.raft.GetConfiguration()

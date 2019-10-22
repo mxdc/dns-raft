@@ -24,7 +24,6 @@ func (s *Store) handleTCP(conn net.Conn) {
 	cmd := strings.SplitN(tmp, " ", 3)
 	// handle command
 	rsp := s.handleCmd(cmd)
-	s.logger.Printf("tcp cmd %s: %s\n", cmd[0], rsp)
 	// send a response back
 	conn.Write([]byte(rsp))
 }

@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mxdec/dns-raft/dns"
-	"github.com/mxdec/dns-raft/store"
+	"github.com/mxdc/dns-raft/dns"
+	"github.com/mxdc/dns-raft/store"
 )
 
 var (

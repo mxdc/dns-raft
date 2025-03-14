@@ -1,4 +1,4 @@
-module github.com/mxdec/dns-raft
+module github.com/mxdc/dns-raft
 
 go 1.22
 

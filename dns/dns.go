@@ -82,8 +82,8 @@ func (d *DNS) LoadZone(zoneFile string) {
 }
 
 // parseZone iterates over entries in the zonefile and creates
-// Record_X objects for resource record type X. It adds these entries to the
-// raft KV Store for propogation to other DNS nameserver nodes.
+// Record_X objects for resource record type X.
+// It adds these entries to the raft KV Store for propagation to other DNS nodes.
 func (d *DNS) parseZone(zoneFile string) {
 	f, err := os.Open(zoneFile)
 	if err != nil {

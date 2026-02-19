@@ -71,10 +71,10 @@ $ dig @127.0.0.1 -p 8602 baz.com
 
 Add a DNS record to a zone file:
 ```
-echo 'database                 60 A     1.2.3.7' >> zones/z00.txt
+$ echo 'database                 60 A     1.2.3.7' >> zones/z00.txt
 ```
 
-Reload zone file by sending SIGHUP to node:
+Reload zone file by sending SIGHUP to the 3 nodes:
 ```
 $ pkill -SIGHUP dns-raft
 ```

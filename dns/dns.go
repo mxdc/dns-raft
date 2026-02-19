@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/miekg/dns"
-	"github.com/mxdec/dns-raft/store"
+	"github.com/mxdc/dns-raft/store"
 )
 
 type dnsHandler struct {
